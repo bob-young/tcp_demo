@@ -8,12 +8,13 @@
 #include<string.h>
 #include<arpa/inet.h>
 #include<errno.h>
-
+#include<string.h>
+#include<netinet/tcp.h>
 //#define SERVER_PORT 84
 #define SEND 512
-
+#define RECEIVE 512
 typedef unsigned char byte;
-
+char* start_msg="_START_";
 
 //@data :input message string
 //@sockfd :sock handler
@@ -70,11 +71,35 @@ int main(int argc, char **argv)
     }else{
 		printf("connect success\n");	
 	}
+//-----------------start-------------------
+	char start[9];
+	char* data;
+	char* resp="OK";
+	//receive start
+	int len=read(sockfd,start,9);
+	start[len]='\0';
+	printf("msg:%s\n",start); 
+	//response
+	if(strcmp(start,start_msg)==0){
+		printf("equal\n");
+	}else{
+		printf("not equal\n");
+	}
+	//-----change mode
+	int optval=0;
+	int rets ;
+	rets = setsockopt(sockfd,SOL_SOCKET,SO_KEEPALIVE,&optval,sizeof(int));
+	rets = setsockopt(sockfd,IPPROTO_TCP,TCP_NODELAY,&optval,sizeof(int));
+	ssize_t ret = write(sockfd,resp,strlen((char*)resp));
+	if(ret>=0){
+		printf("send ok\n");
+	}else{
+		exit(0);
+	}
 
+//message devide
 	int remain=strlen((char*)argv[3]);
 	printf("prepare to send %d messages\n",remain);
-	
-//message devide
 	byte* send_ptr=(byte*)argv[3];
 	for(;;){
 		byte stream[SEND];
@@ -88,6 +113,7 @@ int main(int argc, char **argv)
 			send_ptr+=(SEND*sizeof(char));
 		}
 	}
+	
 	//byte msg[]="_END_";
 	//str_cli(msg,sockfd);
 	close(sockfd);
